@@ -40,11 +40,14 @@ function RegisterScreen({ navigation }) {
             Alert.alert("오류", "회원가입에 실패했습니다. 다시 시도해 주세요.");
           }
         } catch (error) {
-          console.error(error);
-          Alert.alert("오류", "서버와 통신하는 동안 문제가 발생했습니다.");
+          if (error.response && error.response.data && error.response.data.message) {
+            Alert.alert("오류", error.response.data.message);
+          } else {
+            Alert.alert("오류", "서버와 통신하는 동안 문제가 발생했습니다.");
+          }
         }
       } else {
-        alert("입력 값을 확인해 주세요."); // 기본적인 유효성 검증 피드백
+        Alert.alert("입력 값을 확인해 주세요."); // 기본적인 유효성 검증 피드백
       }
     };
     
@@ -97,14 +100,15 @@ function RegisterScreen({ navigation }) {
       keyboardShouldPersistTaps='handled'
     >
     <View>
+      
+      <View style={styles.loginContainer}>
       <View style={styles.logoContainer}>
         <Image
           style={styles.logo}
           source={require('../../../assets/ch.webp')}
         />
       </View>
-      <View style={styles.loginContainer}>
-        <Text style={styles.text_header}>회원가입!!</Text>
+        <Text style={styles.text_header}>환영합니다</Text>
 
         {/* 이름 입력 */}
         <View style={styles.action}>

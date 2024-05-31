@@ -22,8 +22,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    height: width * 1,
-    width: width * 1,
+    height: width * 0.5,
+    width: width * 0.5,
     marginBottom: 0,
   },
   text_footer: {

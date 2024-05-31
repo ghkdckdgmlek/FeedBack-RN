@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, Image, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, Image, TextInput, TouchableOpacity, Alert } from "react-native";
 import styles from "./style";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import axios from "axios";
@@ -20,10 +20,15 @@ function LoginScreen({ navigation }) {
         await login(response.data.token);
         navigation.navigate("MainTabs");
       } else {
-        console.log("로그인 실패: ", response.data.message);
+        Alert.alert("로그인 실패", response.data.message || "로그인에 실패했습니다. 다시 시도해 주세요.");
       }
     } catch (error) {
-      console.error("로그인 오류: ", error);
+      // 서버에서 받은 응답이 있는지 확인하고, 있으면 오류 메시지를 사용
+      if (error.response && error.response.data && error.response.data.message) {
+        Alert.alert("로그인 오류", error.response.data.message);
+      } else {
+        Alert.alert("로그인 오류", "서버와 통신하는 동안 문제가 발생했습니다.");
+      }
     }
   };
 
@@ -33,15 +38,14 @@ function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.mainContainer}>
-      <View style={styles.logoContainer}>
-        <Image
-          style={styles.logo}
-          source={require("../../../assets/ch.webp")}
-        />
-        <Text style={styles.text_header}>로그인</Text>
-      </View>
-
       <View style={styles.loginContainer}>
+        <View style={styles.logoContainer}>
+          <Image
+            style={styles.logo}
+            source={require("../../../assets/ch.webp")}
+          />
+          <Text style={styles.text_header}>로그인</Text>
+        </View>
         <View style={styles.action}>
           <FontAwesome name="user" size={24} color="black" />
           <TextInput

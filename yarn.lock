@@ -5860,6 +5860,13 @@ react-is@^17.0.1:
   resolved "https://registry.npmjs.org/react-is/-/react-is-17.0.2.tgz"
   integrity sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==
 
+react-native-animatable@1.3.3:
+  version "1.3.3"
+  resolved "https://registry.npmjs.org/react-native-animatable/-/react-native-animatable-1.3.3.tgz"
+  integrity sha512-2ckIxZQAsvWn25Ho+DK3d1mXIgj7tITkrS4pYDvx96WyOttSvzzFeQnM2od0+FUMzILbdHDsDEqZvnz1DYNQ1w==
+  dependencies:
+    prop-types "^15.7.2"
+
 react-native-audio@^4.3.0:
   version "4.3.0"
   resolved "https://registry.npmjs.org/react-native-audio/-/react-native-audio-4.3.0.tgz"
@@ -5904,6 +5911,14 @@ react-native-keyboard-aware-scroll-view@^0.9.5:
     prop-types "^15.6.2"
     react-native-iphone-x-helper "^1.0.3"
 
+react-native-modal@^13.0.1:
+  version "13.0.1"
+  resolved "https://registry.npmjs.org/react-native-modal/-/react-native-modal-13.0.1.tgz"
+  integrity sha512-UB+mjmUtf+miaG/sDhOikRfBOv0gJdBU2ZE1HtFWp6UixW9jCk/bhGdHUgmZljbPpp0RaO/6YiMmQSSK3kkMaw==
+  dependencies:
+    prop-types "^15.6.2"
+    react-native-animatable "1.3.3"
+
 react-native-reanimated@~3.10.1:
   version "3.10.1"
   resolved "https://registry.npmjs.org/react-native-reanimated/-/react-native-reanimated-3.10.1.tgz"
@@ -5939,7 +5954,7 @@ react-native-vector-icons@^10.1.0:
     prop-types "^15.7.2"
     yargs "^16.1.1"
 
-react-native@*, "react-native@^0.0.0-0 || >=0.60 <1.0", react-native@>=0.40.0, react-native@>=0.42.0, react-native@>=0.48.4, react-native@0.74.1:
+react-native@*, "react-native@^0.0.0-0 || >=0.60 <1.0", react-native@>=0.40.0, react-native@>=0.42.0, react-native@>=0.48.4, react-native@>=0.65.0, react-native@0.74.1:
   version "0.74.1"
   resolved "https://registry.npmjs.org/react-native/-/react-native-0.74.1.tgz"
   integrity sha512-0H2XpmghwOtfPpM2LKqHIN7gxy+7G/r1hwJHKLV6uoyXGC/gCojRtoo5NqyKrWpFC8cqyT6wTYCLuG7CxEKilg==

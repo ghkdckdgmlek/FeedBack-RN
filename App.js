@@ -9,7 +9,7 @@ import RegisterScreen from './src/screens/Login&Register/RegisterScreen';
 import RecordScreen from './src/screens/RecordScreen';
 import RecordingsScreen from './src/screens/RecordingsScreen';
 import AnalysisScreen from './src/screens/AnalysisScreen';
-import EmptyScreen from './src/screens/EmptyScreen'; // 빈 화면 컴포넌트 추가
+import LogOutScreen from './src/screens/LogOutScreen'; // 빈 화면 컴포넌트 추가
 import { ActivityIndicator, View } from 'react-native';
 
 const Stack = createNativeStackNavigator();
@@ -39,13 +39,14 @@ const MainTabs = () => {
         }}
       />
       <Tab.Screen
-        name="빈칸"
-        component={EmptyScreen}
+        name="탈퇴"
+        component={LogOutScreen}
         options={{
-          tabBarLabel: '빈칸',
+          tabBarLabel: '탈퇴',
           tabBarIcon: ({ color, size }) => (
-            <Icon name="ellipsis-h" color={color} size={size} />
+            <Icon name="sign-out" color={color} size={size} />
           ),
+          headerShown: false,
         }}
       />
     </Tab.Navigator>

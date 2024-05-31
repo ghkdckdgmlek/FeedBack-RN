@@ -1,11 +1,10 @@
-import React, { useState, useLayoutEffect } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput, Text, Modal } from 'react-native';
 import { Audio } from 'expo-av';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { CommonActions } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 
 export default function RecordScreen() {
@@ -14,28 +13,6 @@ export default function RecordScreen() {
     const [title, setTitle] = useState('');
     const [showModal, setShowModal] = useState(false);
     const navigation = useNavigation();
-
-    useLayoutEffect(() => {
-        navigation.setOptions({
-            headerLeft: () => (
-                <TouchableOpacity onPress={handleLogout}>
-                    <Icon name="sign-out" size={25} color="black" style={{ marginLeft: 20 }} />
-                </TouchableOpacity>
-            )
-        });
-    }, [navigation]);
-
-    const handleLogout = async () => {
-        try {
-            await AsyncStorage.removeItem('@user_token');
-            navigation.dispatch(CommonActions.reset({
-                index: 0,
-                routes: [{ name: '로그인' }],
-            }));
-        } catch (error) {
-            console.error('Logout failed', error);
-        }
-    };
 
     const startRecording = async () => {
         if (recording) {

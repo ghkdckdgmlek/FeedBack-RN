@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import axios from 'axios';
 import { useNavigation, CommonActions } from '@react-navigation/native';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../../auth/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Modal from 'react-native-modal';
 
@@ -86,17 +86,26 @@ const LogOutScreen = () => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.deleteButton} onPress={handleLogout}>
-        <Text style={styles.deleteButtonText}>로그아웃</Text>
+      <Text style={styles.header}>Settings</Text>
+      <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('ChangeName')}>
+        <Text style={styles.optionText}>Change name</Text>
       </TouchableOpacity>
-
+      <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('ChangeEmail')}>
+        <Text style={styles.optionText}>Change email</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('ChangePassword')}>
+        <Text style={styles.optionText}>Change password</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.option} onPress={handleLogout}>
+        <Text style={styles.optionText}>Logout</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteUser}>
-        <Text style={styles.deleteButtonText}>회원 탈퇴</Text>
+        <Text style={styles.deleteButtonText}>Delete account</Text>
       </TouchableOpacity>
 
       <Modal isVisible={isModalVisible}>
         <View style={styles.modalContent}>
-          <Image source={require('../../assets/cry.webp')} style={styles.image} />
+          <Image source={require('../../../assets/cry.webp')} style={styles.image} />
           <Text style={styles.modalText}>정말로 회원탈퇴 하시겠습니까?</Text>
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.modalButton1} onPress={confirmDeleteUser}>
@@ -115,15 +124,30 @@ const LogOutScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: '#1c1c1c',
+    padding: 16,
+  },
+  header: {
+    fontSize: 24,
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  option: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  optionText: {
+    fontSize: 18,
+    color: '#fff',
   },
   deleteButton: {
     marginTop: 20,
-    padding: 10,
+    padding: 16,
     backgroundColor: 'red',
     borderRadius: 5,
+    alignItems: 'center',
   },
   deleteButtonText: {
     color: 'white',

@@ -4,6 +4,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useFocusEffect } from '@react-navigation/native';
+import { Card, Title, Paragraph } from 'react-native-paper';
+import { Swipeable } from 'react-native-gesture-handler';
 
 export default function RecordingsScreen({ navigation }) {
   const [recordedFiles, setRecordedFiles] = useState([]);
@@ -74,6 +76,14 @@ export default function RecordingsScreen({ navigation }) {
     });
   };
 
+  const renderRightActions = (progress, dragX, itemId) => {
+    return (
+      <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(itemId)}>
+        <Icon name="trash" size={24} color="#fff" />
+      </TouchableOpacity>
+    );
+  };
+
   const mostRecentRecording = getMostRecentRecording();
 
   return (
@@ -83,26 +93,21 @@ export default function RecordingsScreen({ navigation }) {
         data={recordedFiles}
         keyExtractor={item => item._id}
         renderItem={({ item }) => (
-          <View
-            style={[
-              styles.itemContainer,
-              item._id === mostRecentRecording?._id && styles.recentItemContainer
-            ]}
+          <Swipeable
+            renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item._id)}
           >
-            <TouchableOpacity
-              style={styles.itemContent}
-              onPress={() => handlePress(item.fileId, item.transcript)}
-            >
-              <Icon name="file-audio-o" size={24} color="#4b7bec" style={styles.icon} />
-              <View style={styles.itemDetails}>
-                <Text style={styles.itemTitle} numberOfLines={1} ellipsizeMode='tail'>{item.fileName}</Text>
-                <Text style={styles.itemDate}>{new Date(item.createdAt).toLocaleString()}</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleDelete(item._id)}>
-              <Icon name="trash" size={24} color="#e74c3c" style={styles.icon} />
-            </TouchableOpacity>
-          </View>
+            <Card style={[styles.card, item._id === mostRecentRecording?._id && styles.recentCard]}>
+              <TouchableOpacity
+                style={styles.cardContent}
+                onPress={() => handlePress(item.fileId, item.transcript)}
+              >
+                <Card.Content>
+                  <Title numberOfLines={1} ellipsizeMode='tail'>{item.fileName}</Title>
+                  <Paragraph>{new Date(item.createdAt).toLocaleString()}</Paragraph>
+                </Card.Content>
+              </TouchableOpacity>
+            </Card>
+          </Swipeable>
         )}
       />
     </View>
@@ -113,6 +118,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+    padding: 10,
   },
   header: {
     fontSize: 24,
@@ -121,41 +127,24 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: 'center',
   },
-  itemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
+  card: {
     marginVertical: 5,
-    marginHorizontal: 10,
-    backgroundColor: '#ffffff',
     borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 1,
     elevation: 3,
   },
-  recentItemContainer: {
+  recentCard: {
     backgroundColor: '#d4edda', // Light green background for the most recent item
   },
-  icon: {
-    marginHorizontal: 10,
-  },
-  itemContent: {
+  cardContent: {
     flex: 1,
-    flexDirection: 'row',
+  },
+  deleteButton: {
+    backgroundColor: '#e74c3c',
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  itemDetails: {
-    flex: 1,
-  },
-  itemTitle: {
-    fontSize: 18,
-    fontWeight: '500',
-    flexShrink: 1, // 제목이 잘리지 않도록 설정
-  },
-  itemDate: {
-    fontSize: 14,
-    color: '#6c757d',
+    width: 80,
+    borderRadius: 10,
+    marginVertical: 5,
   },
 });
+

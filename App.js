@@ -6,11 +6,13 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import LoginScreen from './src/screens/Login&Register/LoginScreen';
 import RegisterScreen from './src/screens/Login&Register/RegisterScreen';
-import RecordScreen from './src/screens/RecordScreen';
-import RecordingsScreen from './src/screens/RecordingsScreen';
-import AnalysisScreen from './src/screens/AnalysisScreen';
-import LogOutScreen from './src/screens/LogOutScreen'; // 빈 화면 컴포넌트 추가
+import RecordScreen from './src/screens/1.js/RecordScreen';
+import RecordingsScreen from './src/screens/2.js/RecordingsScreen';
+import AnalysisScreen from './src/screens/2.js/AnalysisScreen';
+import LogOutScreen from './src/screens/3.js/LogOutScreen'; // 빈 화면 컴포넌트 추가
+import { ChangeNameScreen, ChangeEmailScreen, ChangePasswordScreen } from './src/screens/3.js/ChangeNameScreen';
 import { ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -61,14 +63,19 @@ const MainNavigator = () => {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <NavigationContainer>
       <Stack.Navigator initialRouteName={isAuthenticated ? "MainTabs" : "Login"}>
         <Stack.Screen name="로그인" component={LoginScreen} options={{ headerShown: false }} />
         <Stack.Screen name="회원가입" component={RegisterScreen} />
         <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
         <Stack.Screen name="분석" component={AnalysisScreen} />
+        <Stack.Screen name="ChangeName" component={ChangeNameScreen} options={{ title: 'Change Name' }} />
+        <Stack.Screen name="ChangeEmail" component={ChangeEmailScreen} options={{ title: 'Change Email' }} />
+        <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: 'Change Password' }} />
       </Stack.Navigator>
     </NavigationContainer>
+    </GestureHandlerRootView>
   );
 };
 

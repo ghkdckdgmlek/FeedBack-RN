@@ -4,9 +4,17 @@ const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   mainContainer: {
-    backgroundColor: 'white',
     flex: 1,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  keyboardAvoidingView2: {
+    flex: 1,
+  },
+
   textSign: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -16,6 +24,10 @@ const styles = StyleSheet.create({
     marginRight: 10,
     fontSize: 24,
     color: '#420475',
+  },
+  emailIcon: {
+    marginLeft: 0,
+    paddingRight: 5,
   },
   logoContainer: {
     justifyContent: 'center',
@@ -32,8 +44,8 @@ const styles = StyleSheet.create({
   },
   action: {
     flexDirection: 'row',
-    paddingTop: 8, // 패딩 조정
-    paddingBottom: 8, // 패딩 조정
+    paddingTop: 8,
+    paddingBottom: 8,
     marginTop: 15,
     paddingHorizontal: 15,
     borderWidth: 1,
@@ -45,10 +57,10 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     color: '#05375a',
-    marginLeft: 10, // 텍스트 입력 필드와 아이콘 사이 간격 추가
+    marginLeft: 10,
   },
   loginContainer: {
-    backgroundColor: 'white',
+    width: '100%',
     paddingHorizontal: 50,
     paddingVertical: 80,
     justifyContent: 'center',
@@ -94,6 +106,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 5,
     backgroundColor: 'white',
+  },
+  errorText: {
+    marginLeft: 20,
+    color: 'red',
   },
 });
 

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from "expo-linear-gradient";
+
 
 export default function AnalysisScreen({ route, navigation }) {
   const { fileId, existingTranscript } = route.params;  // 기존 변환 결과를 전달받음
@@ -38,8 +40,15 @@ export default function AnalysisScreen({ route, navigation }) {
     }
   }, []);
 
+  useEffect(() => {
+    navigation.setOptions({
+      headerBackTitle: '', // 뒤로 가기 버튼의 텍스트를 제거합니다
+      headerBackTitleVisible: false, // 뒤로 가기 타이틀이 보이지 않도록 합니다
+    });
+  }, [navigation]);
+
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={["#FFDEE9", "#B5FFFC"]} style={styles.container}>
       <Text style={styles.header}>Transcript</Text>
       {loading ? (
         <ActivityIndicator size="large" color="#4b7bec" />
@@ -50,7 +59,7 @@ export default function AnalysisScreen({ route, navigation }) {
           <Text style={styles.analysis}>Speed Score: {speedScore}</Text>
         </View>
       )}
-    </View>
+    </LinearGradient>
   );
 }
 

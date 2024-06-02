@@ -5,6 +5,7 @@ import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useAuth } from '../../auth/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Modal from 'react-native-modal';
+import { LinearGradient } from 'expo-linear-gradient'; // Import LinearGradient
 
 const LogOutScreen = () => {
   const navigation = useNavigation();
@@ -85,8 +86,11 @@ const LogOutScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Settings</Text>
+    <LinearGradient
+      colors={['#FFDEE9', '#B5FFFC']}
+      style={styles.container}
+    >
+      <Text style={styles.settingsHeader}>Settings</Text>
       <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('ChangeName')}>
         <Text style={styles.optionText}>Change name</Text>
       </TouchableOpacity>
@@ -117,30 +121,37 @@ const LogOutScreen = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1c1c1c',
-    padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  header: {
-    fontSize: 24,
-    color: '#fff',
+  settingsHeader: {
+    fontSize: 30,
+    color: '#FFA500', // 오렌지 색상으로 설정
     textAlign: 'center',
     marginBottom: 32,
+    fontWeight: 'bold', // 강조하기 위해 볼드체로 설정
   },
   option: {
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#333',
+    width: '80%',
+    alignItems: 'center',
+    marginBottom: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
   },
   optionText: {
     fontSize: 18,
-    color: '#fff',
+    color: 'black',
   },
   deleteButton: {
     marginTop: 20,
@@ -148,6 +159,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'red',
     borderRadius: 5,
     alignItems: 'center',
+    width: '80%',
   },
   deleteButtonText: {
     color: 'white',
@@ -167,6 +179,7 @@ const styles = StyleSheet.create({
   modalText: {
     fontSize: 18,
     marginBottom: 20,
+    textAlign: 'center',
   },
   buttonContainer: {
     flexDirection: 'row',

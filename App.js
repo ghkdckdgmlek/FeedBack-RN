@@ -32,6 +32,7 @@ const MainTabs = () => {
           tabBarIcon: ({ color, size }) => (
             <Icon name="microphone" color={color} size={size} />
           ),
+          headerShown: false,
         }}
       />
       <Tab.Screen

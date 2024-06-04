@@ -27,7 +27,7 @@ export default function RecordingsScreen({ navigation }) {
     console.log("Token for fetching recordings:", token);
     try {
       const response = await axios.get(
-        "http://192.168.219.175:5001/recordings",
+        "http://192.168.219.148:5001/recordings",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -62,7 +62,7 @@ export default function RecordingsScreen({ navigation }) {
           }
           console.log("Token for deleting recording:", token);
           try {
-            await axios.delete(`http://192.168.219.175:5001/recordings/${id}`, {
+            await axios.delete(`http://192.168.219.148:5001/recordings/${id}`, {
               headers: { Authorization: `Bearer ${token}` },
             });
             // 녹음 목록 업데이트

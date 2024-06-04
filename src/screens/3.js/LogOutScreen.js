@@ -54,7 +54,7 @@ const LogOutScreen = () => {
         return Alert.alert('오류', '인증 토큰이 없습니다.');
       }
 
-      const response = await axios.post('http://192.168.219.175:5001/deleteUser', {}, {
+      const response = await axios.post('http://192.168.219.148:5001/deleteUser', {}, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

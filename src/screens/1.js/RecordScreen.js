@@ -165,7 +165,7 @@ export default function RecordScreen() {
 
     try {
       const response = await axios.post(
-        "http://192.168.219.175:5001/recordings",
+        "http://192.168.219.148:5001/recordings",
         formData,
         {
           headers: {

@@ -23,7 +23,7 @@ function RegisterScreen({ navigation }) {
     const handleRegister = async () => {
       if (nameVerify && emailVerify && mobileVerify && passwordVerify && passwordsMatch) {
         try {
-          const response = await axios.post('http://192.168.219.148:5001/register', {
+          const response = await axios.post('http://192.168.219.100:5001/register', {
             name, email, mobile, password
           });
           console.log(response.data); // 응답을 적절히 처리합니다

@@ -8,6 +8,7 @@ import {
   Modal,
   Image,
   FlatList,
+  ActivityIndicator, // Import ActivityIndicator
 } from "react-native";
 import { Audio } from "expo-av";
 import { useNavigation } from "@react-navigation/native";
@@ -31,29 +32,28 @@ export default function RecordScreen() {
   const [waveform, setWaveform] = useState(new Array(50).fill(0));
   const [sound, setSound] = useState(null);
   const [animate, setAnimate] = useState(false);
+  const [loading, setLoading] = useState(false); // Add loading state
   const navigation = useNavigation();
   const recordingRef = useRef(null);
 
-  // 스톱워치 관리
   useEffect(() => {
     let interval;
     if (recording && !paused) {
       interval = setInterval(() => {
         setElapsedTime((prevTime) => prevTime + 1);
-      }, 1000); // 1초 간격으로 업데이트
+      }, 1000);
     } else if (!recording || paused) {
       clearInterval(interval);
     }
     return () => clearInterval(interval);
   }, [recording, paused]);
 
-  // 볼륨 미터 관리
   useEffect(() => {
     let interval;
     if (recording && !paused) {
       interval = setInterval(() => {
         updateVolumeMeter();
-      }, 100); // 100ms 간격으로 업데이트
+      }, 100);
     } else if (!recording || paused) {
       clearInterval(interval);
     }
@@ -62,18 +62,17 @@ export default function RecordScreen() {
 
   const updateVolumeMeter = async () => {
     if (recording) {
-        const status = await recording.getStatusAsync();
-        if (status.metering !== undefined) {
-            const volume = status.metering;
-            // 음량 값을 0에서 1 사이로 정규화
-            const scaledVolume = Math.max(0, Math.min(1, (volume + 160) / 160));
-            setWaveform(prev => {
-                const newWaveform = [...prev.slice(1), scaledVolume];
-                return newWaveform;
-            });
-        }
+      const status = await recording.getStatusAsync();
+      if (status.metering !== undefined) {
+        const volume = status.metering;
+        const scaledVolume = Math.max(0, Math.min(1, (volume + 160) / 160));
+        setWaveform((prev) => {
+          const newWaveform = [...prev.slice(1), scaledVolume];
+          return newWaveform;
+        });
+      }
     }
-};
+  };
 
   const startRecording = async () => {
     if (recordingRef.current) {
@@ -126,7 +125,6 @@ export default function RecordScreen() {
   };
 
   const stopRecording = async () => {
-    console.log("Stopping recording..");
     try {
       await recordingRef.current.stopAndUnloadAsync();
       const uri = recordingRef.current.getURI();
@@ -143,16 +141,16 @@ export default function RecordScreen() {
   };
 
   const handleSaveTitle = async () => {
+    setLoading(true); // Start loading
     const token = await AsyncStorage.getItem("@user_token");
     if (!token) {
       console.error("No token found");
+      setLoading(false); // Stop loading
       return;
     }
-    console.log("Token:", token);
 
     const formData = new FormData();
     const fileInfo = await FileSystem.getInfoAsync(filePath);
-    console.log("File Info:", fileInfo);
 
     formData.append("file", {
       uri: filePath,
@@ -161,11 +159,9 @@ export default function RecordScreen() {
     });
     formData.append("fileName", title || `Recording_${Date.now()}`);
 
-    console.log("Form Data:", formData);
-
     try {
       const response = await axios.post(
-        "http://192.168.219.148:5001/recordings",
+        "http://192.168.219.100:5001/recordings",
         formData,
         {
           headers: {
@@ -187,6 +183,7 @@ export default function RecordScreen() {
     setShowModal(false);
     setWaveform(new Array(50).fill(0));
     navigation.navigate("보관함", { refresh: true });
+    setLoading(false); // Stop loading
   };
 
   const handleCancel = () => {
@@ -221,23 +218,19 @@ export default function RecordScreen() {
   }, [sound]);
 
   const renderItem = ({ item }) => {
-    const graphColor = item > 0.05 ? 'red' : 'rgba(0, 0, 0, 0.1)'; // 음량이 일정 값 이상일 때는 검은색으로, 그 외에는 투명한 회색으로 설정합니다.
+    const graphColor = item > 0.05 ? 'red' : 'rgba(0, 0, 0, 0.1)';
     return (
       <View
         style={{
-          height: 1600, // 일반적인 어플리케이션의 크기로 고정합니다.
+          height: 1600,
           width: 6,
           backgroundColor: graphColor,
           marginHorizontal: 1,
-          transform: [{ scaleY: item }], // 소리에 따라 그래프의 크기를 조절합니다.
+          transform: [{ scaleY: item }],
         }}
       />
     );
   };
-  
-  
-  
-  
 
   return (
     <LinearGradient colors={["#FFDEE9", "#B5FFFC"]} style={styles.container}>
@@ -270,7 +263,6 @@ export default function RecordScreen() {
         )}
       </View>
       {animate && (
-        // 애니메이션 FlatList 수정
         <View style={styles.waveformContainer}>
           <FlatList
             horizontal
@@ -278,7 +270,7 @@ export default function RecordScreen() {
             renderItem={renderItem}
             keyExtractor={(item, index) => index.toString()}
             scrollEnabled={false}
-            contentContainerStyle={{ alignItems: "center" }} // 중앙 정렬
+            contentContainerStyle={{ alignItems: "center" }}
           />
         </View>
       )}
@@ -297,20 +289,24 @@ export default function RecordScreen() {
               value={title}
               placeholder="파일 제목을 입력하세요"
             />
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSaveTitle}
-              >
-                <Text style={styles.buttonText}>저장</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={handleCancel}
-              >
-                <Text style={styles.buttonText}>취소</Text>
-              </TouchableOpacity>
-            </View>
+            {loading ? ( // Show loading indicator if loading state is true
+              <ActivityIndicator size="large" color="#0000ff" />
+            ) : (
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={handleSaveTitle}
+                >
+                  <Text style={styles.buttonText}>저장</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={handleCancel}
+                >
+                  <Text style={styles.buttonText}>취소</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -318,8 +314,6 @@ export default function RecordScreen() {
   );
 }
 
-
-// 스타일 수정
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -365,18 +359,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: {
-        width: 0,
-        height: 2
+      width: 0,
+      height: 2,
     },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 5
-},
+    elevation: 5,
+  },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
-},
+  },
   titleInput: {
     height: 40,
     borderColor: "gray",
@@ -390,24 +384,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-},
-saveButton: {
+  },
+  saveButton: {
     flex: 1,
     backgroundColor: '#4CAF50',
     padding: 10,
     borderRadius: 10,
     marginRight: 5,
-},
-cancelButton: {
+  },
+  cancelButton: {
     flex: 1,
     backgroundColor: '#f44336',
     padding: 10,
     borderRadius: 10,
     marginLeft: 5,
-},
-buttonText: {
+  },
+  buttonText: {
     color: 'white',
     textAlign: 'center',
     fontWeight: 'bold',
-},
+  },
 });

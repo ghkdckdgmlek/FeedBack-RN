@@ -17,6 +17,9 @@ import {
 } from "./src/screens/3.js/ChangeNameScreen";
 import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import CustomTabs from './src/screens/2.js/2-1.js/CustomTabs'; // CustomTabs import
+
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -104,6 +107,12 @@ const MainNavigator = () => {
             component={ChangePasswordScreen}
             options={{ title: "Change Password" }}
           />
+          <Stack.Screen
+            name="에너지 분석 상세 결과" 
+            component={CustomTabs}
+            options={{ title: '에너지 분석 상세 결과' }}
+          />
+
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

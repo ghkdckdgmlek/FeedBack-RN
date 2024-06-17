@@ -9,7 +9,7 @@ import RegisterScreen from "./src/screens/Login&Register/RegisterScreen";
 import RecordScreen from "./src/screens/1.js/RecordScreen";
 import RecordingsScreen from "./src/screens/2.js/RecordingsScreen";
 import AnalysisScreen from "./src/screens/2.js/AnalysisScreen";
-import LogOutScreen from "./src/screens/3.js/LogOutScreen"; // 빈 화면 컴포넌트 추가
+import LogOutScreen from "./src/screens/3.js/LogOutScreen"; 
 import {
   ChangeNameScreen,
   ChangeEmailScreen,
@@ -18,8 +18,6 @@ import {
 import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import CustomTabs from './src/screens/2.js/2-1.js/CustomTabs'; // CustomTabs import
-
-
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -54,7 +52,7 @@ const MainTabs = () => {
         options={{
           tabBarLabel: "설정",
           tabBarIcon: ({ color, size }) => (
-            <Icon name="cog" color={color} size={size} /> // 'cog' 아이콘을 사용하여 설정 아이콘을 표시합니다
+            <Icon name="cog" color={color} size={size} />
           ),
           headerShown: false,
         }}
@@ -108,11 +106,10 @@ const MainNavigator = () => {
             options={{ title: "Change Password" }}
           />
           <Stack.Screen
-            name="에너지 분석 상세 결과" 
+            name="CustomTabs"
             component={CustomTabs}
             options={{ title: '에너지 분석 상세 결과' }}
           />
-
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

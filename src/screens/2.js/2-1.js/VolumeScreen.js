@@ -5,14 +5,15 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function VolumeScreen({ route, navigation, onVolumeScoreUpdate }) {
+  // 상태 관리
   const { fileId } = route.params;
-  const [volumeData, setVolumeData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [timeStamps, setTimeStamps] = useState([]);
-  const [duration, setDuration] = useState(0);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [volumeScore, setVolumeScore] = useState(0); // 볼륨 점수 상태 추가
-  const [volumeRanges, setVolumeRanges] = useState({
+  const [volumeData, setVolumeData] = useState([]); // 볼륨 데이터
+  const [isLoading, setIsLoading] = useState(true); // 로딩 상태
+  const [timeStamps, setTimeStamps] = useState([]); //  시간 스탬프
+  const [duration, setDuration] = useState(0); // 오디오 길이
+  const [modalVisible, setModalVisible] = useState(false); // 모달 표시
+  const [volumeScore, setVolumeScore] = useState(0); // 볼륨 점수
+  const [volumeRanges, setVolumeRanges] = useState({ // 볼륨 범위
     low: 0,
     slightlyLow: 0,
     medium: 0,
@@ -23,6 +24,7 @@ export default function VolumeScreen({ route, navigation, onVolumeScoreUpdate })
     avgVolume: 0
   });
 
+  // (!) 볼륨 데이터 가져오는 함수
   const fetchVolumeData = async () => {
     const token = await AsyncStorage.getItem('@user_token');
     if (!token) {
@@ -30,70 +32,81 @@ export default function VolumeScreen({ route, navigation, onVolumeScoreUpdate })
       return;
     }
   
-    const cachedVolumeData = await AsyncStorage.getItem(`@volume_data_${fileId}`);
+    const cachedVolumeData = await AsyncStorage.getItem(`@volume_data_${fileId}`); // 캐시된 볼륨 데이터 가져오기
+    // 캐시된 데이터 있는 경우
     if (cachedVolumeData) {
-      const parsedData = JSON.parse(cachedVolumeData);
-      setVolumeData(parsedData.rms_values);
+      const parsedData = JSON.parse(cachedVolumeData); // 캐시된 데이터 파싱
+      setVolumeData(parsedData.db_values);
+      console.log('Volume values:', parsedData.db_values);
       setVolumeScore(parsedData.volume_score);
       setDuration(parsedData.duration);
       setVolumeRanges(parsedData.volume_ranges);
-      setIsLoading(false);
+      setIsLoading(false); // 로딩 상태 false
       return;
     }
   
+    // 서버에서 볼륨 분석 데이터 가져오기
     try {
-      console.log('Fetching volume data...');
-      const response = await axios.get(`http://192.168.35.47:5002/recordings/${fileId}/transcript`, {
+      const response = await axios.get(`http://192.168.219.148:5002/recordings/${fileId}/analysis`, {
         headers: { Authorization: `Bearer ${token}` },
       });
   
-      console.log('Response data:', response.data);
+      const { volume_analysis } = response.data; // 서버 응답에서 볼륨 분석 데이터 추출
+      if (!volume_analysis) {
+        throw new Error('No volume analysis data found');
+      }
+      const { db_values, volume_score } = volume_analysis; // 볼륨 값 추출
   
-      if (response.data.volume_analysis) {
-        const { volume_analysis } = response.data;
-        const { rms_values, volume_score } = volume_analysis; // volume_score 추가
+      setVolumeScore(volume_score); // 볼륨 점수 설정
+      onVolumeScoreUpdate(volume_score); // 부모 컴포넌트(CustomTabs) 볼륨 점수 업데이트
   
-        setVolumeScore(volume_score); // volume_score 설정  
-        onVolumeScoreUpdate(volume_score); // 콜백 함수 호출      
+      const totalDuration = db_values.length / 100; // 총 길이 계산
+      setDuration(totalDuration);
   
-        console.log('RMS values:', rms_values);
+      const sampledVolumeData = [];
+      const sampledTimeStamps = [];
   
-        const totalDuration = rms_values.length / 100;
-        setDuration(totalDuration);
+      let low = 0, slightlyLow = 0, medium = 0, slightlyHigh = 0, high = 0;
+      let minVolume = Math.min(...db_values);
+      let maxVolume = Math.max(...db_values);
+      let sumVolume = 0;
   
-        const sampledVolumeData = [];
-        const sampledTimeStamps = [];
-  
-        let low = 0, slightlyLow = 0, medium = 0, slightlyHigh = 0, high = 0;
-        let minVolume = Math.min(...rms_values);
-        let maxVolume = Math.max(...rms_values);
-        let sumVolume = 0;
-  
-        for (let i = 0; i < rms_values.length; i++) {
-          const volume = rms_values[i];
-          sampledVolumeData.push(volume);
-          if (i % 100 === 0) {
-            sampledTimeStamps.push((i / 100).toFixed(1));
-          }
-          sumVolume += volume;
-  
-          if (volume < 40) low++;
-          else if (volume < 60) slightlyLow++;
-          else if (volume < 75) medium++;
-          else if (volume < 85) slightlyHigh++;
-          else high++;
+      // 볼륨 값 샘플링, 범위별 카운트
+      for (let i = 0; i < db_values.length; i++) {
+        const volume = db_values[i];
+        sampledVolumeData.push(volume);
+        if (i % 100 === 0) {
+          sampledTimeStamps.push((i / 100).toFixed(1));
         }
+        sumVolume += volume;
   
-        const avgVolume = sumVolume / rms_values.length;
+        if (volume < 40) low++;
+        else if (volume < 60) slightlyLow++;
+        else if (volume < 75) medium++;
+        else if (volume < 85) slightlyHigh++;
+        else high++;
+      }
   
-        console.log('Volume data processed successfully');
-        console.log('Sampled Volume Data:', sampledVolumeData);
-        console.log('Sampled Time Stamps:', sampledTimeStamps);
-        console.log('Volume Ranges:', { low, slightlyLow, medium, slightlyHigh, high, minVolume, maxVolume, avgVolume });
+      const avgVolume = sumVolume / db_values.length;
   
-        setVolumeData(sampledVolumeData);
-        setTimeStamps(sampledTimeStamps);
-        setVolumeRanges({
+      setVolumeData(sampledVolumeData);
+      setTimeStamps(sampledTimeStamps);
+      setVolumeRanges({
+        low,
+        slightlyLow,
+        medium,
+        slightlyHigh,
+        high,
+        minVolume,
+        maxVolume,
+        avgVolume
+      });
+  
+      const volumeDataToCache = {
+        db_values: sampledVolumeData,
+        volume_score,
+        duration: totalDuration,
+        volume_ranges: {
           low,
           slightlyLow,
           medium,
@@ -102,28 +115,10 @@ export default function VolumeScreen({ route, navigation, onVolumeScoreUpdate })
           minVolume,
           maxVolume,
           avgVolume
-        });
+        }
+      };
   
-        const volumeDataToCache = {
-          rms_values: sampledVolumeData,
-          volume_score,
-          duration: totalDuration,
-          volume_ranges: {
-            low,
-            slightlyLow,
-            medium,
-            slightlyHigh,
-            high,
-            minVolume,
-            maxVolume,
-            avgVolume
-          }
-        };
-  
-        await AsyncStorage.setItem(`@volume_data_${fileId}`, JSON.stringify(volumeDataToCache));
-      } else {
-        console.error('No volume_analysis data found');
-      }
+      await AsyncStorage.setItem(`@volume_data_${fileId}`, JSON.stringify(volumeDataToCache));
     } catch (error) {
       console.error('Failed to fetch volume data', error.response ? error.response.data : error.message);
     } finally {
@@ -131,6 +126,7 @@ export default function VolumeScreen({ route, navigation, onVolumeScoreUpdate })
     }
   };
   
+  // 컴포넌트가 마운트될 때 볼륨 데이터 가져옴
   useEffect(() => {
     fetchVolumeData();
   }, []);  
@@ -187,7 +183,9 @@ export default function VolumeScreen({ route, navigation, onVolumeScoreUpdate })
       </View>
       <View style={styles.legendContainer}>
         {volumeRanges.low > 0 && <Text style={{ color: 'red' }}>낮음</Text>}
+        {volumeRanges.slightlyLow > 0 && <Text style={{ color: 'orange' }}>약간 낮음</Text>}
         {volumeRanges.medium > 0 && <Text style={{ color: 'yellow' }}>보통</Text>}
+        {volumeRanges.slightlyHigh > 0 && <Text style={{ color: 'lightgreen' }}>약간 높음</Text>}
         {volumeRanges.high > 0 && <Text style={{ color: 'green' }}>높음</Text>}
       </View>
       <Text style={styles.subHeader}>시간에 따른 볼륨 변화</Text>
@@ -200,7 +198,7 @@ export default function VolumeScreen({ route, navigation, onVolumeScoreUpdate })
             backgroundColor: '#ffffff',
             backgroundGradientFrom: '#ffffff',
             backgroundGradientTo: '#ffffff',
-            decimalPlaces: 2, // 소수점 2자리로 설정
+            decimalPlaces: 1, // 소수점 2자리로 설정
             color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
             style: {
@@ -218,7 +216,7 @@ export default function VolumeScreen({ route, navigation, onVolumeScoreUpdate })
           }}
           withInnerLines={false}
           withOuterLines={false}
-          yLabelsOffset={-2}
+          yLabelsOffset={-22}
           xLabelsOffset={-10}
           fromZero
           yAxisInterval={1}
@@ -228,10 +226,10 @@ export default function VolumeScreen({ route, navigation, onVolumeScoreUpdate })
           formatYLabel={(y) => {
             if (y > 0 && y < 1) return `${parseFloat(y).toFixed(2)}dB 낮음`;
             if (y == 0) return `${y}dB`;
-            if (y <= 40) return `${y}dB 낮음`;
-            if (y <= 60) return `${y}dB 약간 낮음`;
-            if (y <= 75) return `${y}dB 보통`;
-            if (y <= 85) return `${y}dB 약간 높음`;
+            if (y <= 40) return `${y}dB낮음`;
+            if (y <= 60) return `${y}dB약간낮음`;
+            if (y <= 75) return `${y}dB보통`;
+            if (y <= 85) return `${y}dB약간높음`;
             return `${y}dB 높음`;
           }}
           formatXLabel={(x) => `${parseFloat(x).toFixed(1)}s`}

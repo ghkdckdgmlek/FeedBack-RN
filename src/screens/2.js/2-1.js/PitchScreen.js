@@ -5,14 +5,15 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function PitchScreen({ route, navigation, onPitchScoreUpdate }) {
+  // 상태 관리
   const { fileId } = route.params;
-  const [pitchData, setPitchData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [timeStamps, setTimeStamps] = useState([]);
-  const [duration, setDuration] = useState(0);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [pitchScore, setPitchScore] = useState(0); // pitchScore 상태 추가
-  const [pitchRanges, setPitchRanges] = useState({
+  const [pitchData, setPitchData] = useState([]); // 피치 데이터
+  const [isLoading, setIsLoading] = useState(true); // 로딩
+  const [timeStamps, setTimeStamps] = useState([]); // 시간 스탬프
+  const [duration, setDuration] = useState(0); // 오디오 길이
+  const [modalVisible, setModalVisible] = useState(false); // 모달 표시
+  const [pitchScore, setPitchScore] = useState(0); //피치 점수
+  const [pitchRanges, setPitchRanges] = useState({ // 피치 범위
     low: 0,
     slightlyLow: 0,
     medium: 0,
@@ -23,47 +24,62 @@ export default function PitchScreen({ route, navigation, onPitchScoreUpdate }) {
     avgPitch: 0
   });
 
+  // (!) 피치 데이터 가져오는 함수
   const fetchPitchData = async () => {
-    const token = await AsyncStorage.getItem('@user_token');
+    console.log('Fetching pitch data...');
+    const token = await AsyncStorage.getItem('@user_token'); // 비동기 스토리지에서 토큰 가져오기
     if (!token) {
       console.error('No token found');
       return;
     }
-  
-    const cachedPitchData = await AsyncStorage.getItem(`@pitch_data_${fileId}`);
+    console.log('Token found:', token);
+
+    const cachedPitchData = await AsyncStorage.getItem(`@pitch_data_${fileId}`); // 캐시된 피치 데이터 가져오기 (캐시: 데이터 일시 저장하여 동일 데이터 필요 시 빠르게 접근 가능/서버에서 매번 데이터 가져오지X)
+    // 캐시된 데이터 있는 경우
     if (cachedPitchData) {
-      const parsedData = JSON.parse(cachedPitchData);
+      console.log('Cached pitch data found');
+      const parsedData = JSON.parse(cachedPitchData); // 캐시되 데이터 파싱
+      console.log('Parsed cached pitch data:', parsedData);  // 캐시된 데이터 로그 추가
       setPitchData(parsedData.pitch_values);
+      console.log('Pitch values:', parsedData.pitch_values);
       setPitchScore(parsedData.pitch_score);
+      console.log('Pitch score:', parsedData.pitch_score);
       setDuration(parsedData.duration);
       setPitchRanges(parsedData.pitch_ranges);
-      setIsLoading(false);
+      setIsLoading(false); // 로딩 상태 false
       return;
     }
-  
-    try {
-      const response = await axios.get(`http://192.168.35.47:5002/recordings/${fileId}/transcript`, {
+
+    try { // 서버에서 피치 분석 데이터 가져오기
+      const response = await axios.get(`http://192.168.219.148:5002/recordings/${fileId}/analysis`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-  
-      const { pitch_values, pitch_score } = response.data;
-  
-      // pitch_score 배열의 첫 번째 요소를 가져옴
-      const pitchScoreValue = Array.isArray(pitch_score) ? pitch_score[0] : 0;
+      console.log('Server response received:', response.data);
+
+      const { pitch_analysis } = response.data;
+      if (!pitch_analysis) {
+        throw new Error('No pitch analysis data found');
+      }
+      console.log('Pitch analysis data:', pitch_analysis);
+
+      const { pitch_values, pitch_score } = pitch_analysis; // 피치 값 추출
+      const pitchScoreValue = Array.isArray(pitch_score) ? pitch_score[0] : pitch_score; // 피치 점수 설정
       setPitchScore(pitchScoreValue);
-      onPitchScoreUpdate(pitchScoreValue); // 콜백 함수 호출
-  
-      const totalDuration = pitch_values.length / 100;
+      onPitchScoreUpdate(pitchScoreValue); // 부모 컴포넌트(CustomTabs)로 피치 점수 업데이트
+      console.log('Pitch score:', pitchScoreValue);
+
+      const totalDuration = pitch_values.length / 100; // 총 길이 계산
       setDuration(totalDuration);
-  
+
       const sampledPitchData = [];
       const sampledTimeStamps = [];
-  
+
       let low = 0, slightlyLow = 0, medium = 0, slightlyHigh = 0, high = 0;
       let minPitch = Math.min(...pitch_values);
       let maxPitch = Math.max(...pitch_values);
       let sumPitch = 0;
-  
+
+      // 피치 값 샘플링하고, 범위별로 카운트
       for (let i = 0; i < pitch_values.length; i++) {
         const pitch = pitch_values[i];
         sampledPitchData.push(pitch);
@@ -71,16 +87,16 @@ export default function PitchScreen({ route, navigation, onPitchScoreUpdate }) {
           sampledTimeStamps.push((i / 100).toFixed(1));
         }
         sumPitch += pitch;
-  
+
         if (pitch < 85) low++;
         else if (pitch < 125) slightlyLow++;
         else if (pitch < 180) medium++;
         else if (pitch < 255) slightlyHigh++;
         else high++;
       }
-  
+
       const avgPitch = sumPitch / pitch_values.length;
-  
+
       setPitchData(sampledPitchData);
       setTimeStamps(sampledTimeStamps);
       setPitchRanges({
@@ -93,7 +109,17 @@ export default function PitchScreen({ route, navigation, onPitchScoreUpdate }) {
         maxPitch,
         avgPitch
       });
-  
+      console.log('Pitch ranges:', {
+        low,
+        slightlyLow,
+        medium,
+        slightlyHigh,
+        high,
+        minPitch,
+        maxPitch,
+        avgPitch
+      });
+
       const pitchDataToCache = {
         pitch_values: sampledPitchData,
         pitch_score: pitchScoreValue,
@@ -109,38 +135,42 @@ export default function PitchScreen({ route, navigation, onPitchScoreUpdate }) {
           avgPitch
         }
       };
-  
-      await AsyncStorage.setItem(`@pitch_data_${fileId}`, JSON.stringify(pitchDataToCache));
+
+      await AsyncStorage.setItem(`@pitch_data_${fileId}`, JSON.stringify(pitchDataToCache)); // 피치 데이터 캐시에 저장
+      console.log('Pitch data cached');
     } catch (error) {
       console.error('Failed to fetch pitch data', error.response ? error.response.data : error.message);
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // 로딩 상태 false
+      console.log('Fetching pitch data complete');
     }
-  };  
+  };
 
+  // 컴포넌트가 마운트 될 때 피치 데이터 가져옴
   useEffect(() => {
     fetchPitchData();
   }, []);
 
   const chartData = {
-    labels: timeStamps,
+    labels: timeStamps, // 차트 x축 레이블
     datasets: [{
-      data: pitchData,
-      color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+      data: pitchData, // 차트에 표시할 데이터
+      color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`, //데이터 색상
       strokeWidth: 2,
-      withDots: false,  // 점을 표시하지 않음
+      withDots: false,
     }]
   };
 
+  // 피치 값 따라 색상 반환 함수
   const getColorForRange = (value) => {
     if (value < 85) return 'red';
-    if (value < 125) return 'red';
-    if (value < 180) return 'orange';
-    if (value < 255) return 'orange';
+    if (value < 125) return 'orange';
+    if (value < 180) return 'lightgreen';
+    if (value < 255) return 'green';
     return 'green';
   };
 
-  if (isLoading) {
+  if (isLoading) { // 로딩 중인 경우 로딩 애니메이션 표시
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#000" />
@@ -149,13 +179,17 @@ export default function PitchScreen({ route, navigation, onPitchScoreUpdate }) {
     );
   }
 
+  const openModal = async () => {
+    setModalVisible(true);
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.headerContainer}>
         <Text style={styles.header}>목소리 높낮이 분석 결과</Text>
       </View>
       <View>
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
+        <TouchableOpacity onPress={openModal}>
           <Text style={styles.infoText}>범위기준?</Text>
         </TouchableOpacity>
       </View>
@@ -167,14 +201,16 @@ export default function PitchScreen({ route, navigation, onPitchScoreUpdate }) {
       </View>
       <View style={styles.rangeContainer}>
         {pitchRanges.low > 0 && <View style={{ flex: pitchRanges.low / pitchData.length, backgroundColor: 'red' }} />}
-        {pitchRanges.slightlyLow > 0 && <View style={{ flex: pitchRanges.slightlyLow / pitchData.length, backgroundColor: 'red' }} />}
-        {pitchRanges.medium > 0 && <View style={{ flex: pitchRanges.medium / pitchData.length, backgroundColor: 'orange' }} />}
-        {pitchRanges.slightlyHigh > 0 && <View style={{ flex: pitchRanges.slightlyHigh / pitchData.length, backgroundColor: 'orange' }} />}
+        {pitchRanges.slightlyLow > 0 && <View style={{ flex: pitchRanges.slightlyLow / pitchData.length, backgroundColor: 'orange' }} />}
+        {pitchRanges.medium > 0 && <View style={{ flex: pitchRanges.medium / pitchData.length, backgroundColor: 'yellow' }} />}
+        {pitchRanges.slightlyHigh > 0 && <View style={{ flex: pitchRanges.slightlyHigh / pitchData.length, backgroundColor: 'lightgreen' }} />}
         {pitchRanges.high > 0 && <View style={{ flex: pitchRanges.high / pitchData.length, backgroundColor: 'green' }} />}
       </View>
       <View style={styles.legendContainer}>
         {pitchRanges.low > 0 && <Text style={{ color: 'red' }}>낮음</Text>}
-        {pitchRanges.medium > 0 && <Text style={{ color: 'orange' }}>보통</Text>}
+        {pitchRanges.slightlyLow > 0 && <Text style={{ color: 'orange' }}>약간낮음</Text>}
+        {pitchRanges.medium > 0 && <Text style={{ color: 'yellow' }}>보통</Text>}
+        {pitchRanges.slightlyHigh > 0 && <Text style={{ color: 'lightgreen' }}>약간높음</Text>}
         {pitchRanges.high > 0 && <Text style={{ color: 'green' }}>높음</Text>}
       </View>
       <Text style={styles.subHeader}>시간에 따른 피치 변화</Text>
@@ -244,9 +280,9 @@ export default function PitchScreen({ route, navigation, onPitchScoreUpdate }) {
           <View style={styles.modalView}>
             <Text style={styles.modalText}>❖ 피치 범위 기준 ❖</Text>
             <Text style={[styles.modalText, { color: 'red' }]}>· 낮음 (Low): 85Hz 이하</Text>
-            <Text style={[styles.modalText, { color: 'red' }]}>· 약간 낮음 (Slightly Low): 85Hz ~ 125Hz</Text>
-            <Text style={[styles.modalText, { color: 'orange' }]}>· 보통 (Medium): 125Hz ~ 180Hz</Text>
-            <Text style={[styles.modalText, { color: 'orange' }]}>· 약간 높음 (Slightly High): 180Hz ~ 255Hz</Text>
+            <Text style={[styles.modalText, { color: 'orange' }]}>· 약간 낮음 (Slightly Low): 85Hz ~ 125Hz</Text>
+            <Text style={[styles.modalText, { color: 'yellow' }]}>· 보통 (Medium): 125Hz ~ 180Hz</Text>
+            <Text style={[styles.modalText, { color: 'lightgreen' }]}>· 약간 높음 (Slightly High): 180Hz ~ 255Hz</Text>
             <Text style={[styles.modalText, { color: 'green' }]}>· 높음 (High): 255Hz 이상</Text>
             <TouchableOpacity
               style={[styles.button, styles.buttonClose]}

@@ -27,7 +27,7 @@ const ChangeNameScreen = () => {
     const token = await AsyncStorage.getItem("@user_token");
     try {
       const response = await axios.post(
-        "http://192.168.219.100:5001/changeName",
+        "http://192.168.219.148:5001/changeName",
         { newName },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -70,7 +70,7 @@ const ChangeEmailScreen = () => {
     const token = await AsyncStorage.getItem("@user_token");
     try {
       const response = await axios.post(
-        "http://192.168.100.145:5001/changeEmail",
+        "http://192.168.148.145:5001/changeEmail",
         { newEmail },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -113,7 +113,7 @@ const ChangePasswordScreen = () => {
     const token = await AsyncStorage.getItem("@user_token");
     try {
       const response = await axios.post(
-        "http://192.168.219.100:5001/changePassword",
+        "http://192.168.219.148:5001/changePassword",
         { newPassword },
         {
           headers: { Authorization: `Bearer ${token}` },

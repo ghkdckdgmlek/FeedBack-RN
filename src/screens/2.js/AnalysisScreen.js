@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Card } from 'react-native-paper';
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from '@expo/vector-icons'; 
+import { useNavigation } from '@react-navigation/native'; 
 
 export default function AnalysisScreen({ route, navigation }) {
   const { fileId, existingTranscript } = route.params;
@@ -31,22 +33,25 @@ export default function AnalysisScreen({ route, navigation }) {
   const [loadingMessage, setLoadingMessage] = useState(new Animated.Value(0));
   const [contentOpacity, setContentOpacity] = useState(new Animated.Value(0));
 
+  const transcriptScrollViewRef = useRef(null);
+  const silenceRefs = useRef([]);
+
   const fetchTranscript = async () => {
     const token = await AsyncStorage.getItem("@user_token");
     if (!token) {
-      console.error("No token found");
+      console.error("토큰을 찾을 수 없습니다.");
       return;
     }
-    console.log("Token for fetching transcript:", token);
+    console.log("Transcript를 가져오는 토큰:", token);
     try {
       const response = await axios.get(
-        `http://192.168.219.100:5002/recordings/${fileId}/transcript`,
+        `http://192.168.219.148:5002/recordings/${fileId}/transcript`,
         {
           headers: { Authorization: `Bearer ${token}` },
-          timeout: 0  // 시간 제한을 무제한으로 설정
+          timeout: 0  
         }
       );
-      console.log("Transcript fetched successfully:", response.data);
+      console.log("Transcript 가져오기 성공:", response.data);
       setTranscript(response.data.transcript || "");
       setHateSpeechResults(response.data.hate_speech_results || []);
       setHateSpeechRatio(response.data.hate_speech_ratio || 0);
@@ -67,7 +72,7 @@ export default function AnalysisScreen({ route, navigation }) {
       }).start();
     } catch (error) {
       console.error(
-        "Failed to fetch transcript",
+        "Transcript 가져오기 실패",
         error.response ? error.response.data : error.message
       );
     } finally {
@@ -145,82 +150,63 @@ export default function AnalysisScreen({ route, navigation }) {
     ));
   };
 
-  const highlightText = (text, highlights, style) => {
-    const regex = new RegExp(`\\b(${highlights.join('|')})\\b`, 'gi');
-    const parts = text.split(regex);
-
-    return parts.map((part, index) =>
-      highlights.includes(part.toLowerCase()) ? (
-        <Text key={index} style={style}>{part}</Text>
-      ) : (
-        <Text key={index} style={styles.boldText}>{part}</Text>
-      )
-    );
-  };
-
   const highlightKeywordsInTranscript = (transcript, keywords, silenceDurations) => {
     if (!transcript) {
       return null;
     }
 
-    const silenceMarkers = Array.isArray(silenceDurations) ? silenceDurations.reduce((acc, [start, end], index) => {
-      acc[start] = { type: 'start', index };
-      acc[end] = { type: 'end', index };
-      return acc;
-    }, {}) : {};
+    keywords = Array.isArray(keywords) ? keywords : [];
 
-    const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
-    const regexWords = Object.keys(regexWordCounts);
-    const normalWords = Object.keys(normalWordCounts);
+    const silenceMarkers = Array.isArray(silenceDurations)
+      ? silenceDurations.reduce((acc, [start, end]) => {
+          acc.push({ position: start, type: 'start' });
+          acc.push({ position: end, type: 'end' });
+          return acc;
+        }, [])
+      : [];
 
     let highlightedTranscript = [];
     let currentIndex = 0;
     let silenceOpen = false;
 
-    for (let i = 0; i < transcript.length; i++) {
-      const slice = transcript.slice(currentIndex, i + 1);
+    const processTextSlice = (text, startIndex, endIndex, style) => {
+      if (startIndex < endIndex) {
+        highlightedTranscript.push(
+          <Text key={startIndex} style={style}>
+            {text.slice(startIndex, endIndex)}
+          </Text>
+        );
+      }
+    };
 
-      if (silenceMarkers[i]) {
-        const marker = silenceMarkers[i];
-        if (marker.type === 'start' && !silenceOpen) {
-          highlightedTranscript.push(<Text key={`text-${currentIndex}`} style={styles.boldText}>{slice.slice(0, -1)}</Text>);
+    for (let i = 0; i < transcript.length; i++) {
+      // 침묵 구간 처리
+      if (silenceMarkers.length > 0 && i === silenceMarkers[0].position) {
+        if (silenceMarkers[0].type === 'start' && !silenceOpen) {
+          processTextSlice(transcript, currentIndex, i, styles.transcriptText);
           silenceOpen = true;
           currentIndex = i;
-        } else if (marker.type === 'end' && silenceOpen) {
-          highlightedTranscript.push(
-            <Text key={`silence-${currentIndex}`} style={styles.silenceHighlight}>
-              {slice}
-            </Text>
-          );
+          silenceMarkers.shift();
+        } else if (silenceMarkers[0].type === 'end' && silenceOpen) {
+          processTextSlice(transcript, currentIndex, i, styles.silenceHighlight);
           silenceOpen = false;
-          currentIndex = i + 1;
+          currentIndex = i;
+          silenceMarkers.shift();
         }
       }
 
-      const keywordMatch = slice.match(keywordRegex);
-      const regexMatch = slice.match(new RegExp(`\\b(${regexWords.join('|')})\\b`, 'gi'));
-      const normalMatch = slice.match(new RegExp(`\\b(${normalWords.join('|')})\\b`, 'gi'));
-
-      if (keywordMatch || regexMatch || normalMatch) {
-        highlightedTranscript.push(<Text key={`text-${currentIndex}`} style={styles.boldText}>{slice.split(keywordMatch || regexMatch || normalMatch)[0]}</Text>);
-        const highlightStyle = keywordMatch
-          ? styles.keywordHighlight
-          : regexMatch
-          ? styles.unnecessaryWordHighlight
-          : styles.repeatedWordHighlight;
-
-        highlightedTranscript.push(
-          <Text key={`highlight-${i}`} style={highlightStyle}>
-            {keywordMatch ? keywordMatch[0] : regexMatch ? regexMatch[0] : normalMatch[0]}
-          </Text>
-        );
-        currentIndex = i + 1;
+      // 키워드 처리
+      const keywordMatch = transcript.slice(currentIndex, i + 1).match(new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi'));
+      if (keywordMatch) {
+        const matchIndex = transcript.indexOf(keywordMatch[0], currentIndex);
+        processTextSlice(transcript, currentIndex, matchIndex, styles.transcriptText);
+        processTextSlice(transcript, matchIndex, matchIndex + keywordMatch[0].length, styles.keywordHighlight);
+        currentIndex = matchIndex + keywordMatch[0].length;
       }
     }
 
-    if (currentIndex < transcript.length) {
-      highlightedTranscript.push(<Text key={`text-${currentIndex}`} style={styles.boldText}>{transcript.slice(currentIndex)}</Text>);
-    }
+    // 남은 텍스트 처리
+    processTextSlice(transcript, currentIndex, transcript.length, styles.transcriptText);
 
     return highlightedTranscript;
   };
@@ -231,9 +217,11 @@ export default function AnalysisScreen({ route, navigation }) {
     }
 
     return silenceDurations.map((duration, index) => (
-      <Text key={index} style={styles.silenceItem}>
-        <Text style={styles.silenceHighlight}>{duration[0]} - {duration[1]}: {duration[2].toFixed(2)}초</Text>
-      </Text>
+      <TouchableOpacity key={index} onPress={() => scrollToSilence(index)}>
+        <Text style={styles.silenceItem}>
+          <Text style={styles.silenceHighlight}>{duration[0]} - {duration[1]}: {duration[2].toFixed(2)}초</Text>
+        </Text>
+      </TouchableOpacity>
     ));
   };
 
@@ -251,14 +239,23 @@ export default function AnalysisScreen({ route, navigation }) {
 
   const getSpeedFeedback = (speedScore) => {
     switch (speedScore) {
-      case "Slow":
+      case "청중이 지루해 합니다!":
         return "말하기 속도가 느립니다. 조금 더 빠르게 말해보세요.";
-      case "Fast":
-        return "말하기 속도가 빠릅니다. 조금 더 천천히 말해보세요.";
-      case "Good":
+      case "청중이 이해하기 좋습니다!":
         return "말하기 속도가 적절합니다.";
+      case "말이 빨라서 청중이 이해하기 어렵습니다!":
+        return "말하기 속도가 빠릅니다. 조금 더 천천히 말해보세요.";
       default:
         return "";
+    }
+  };
+
+  const scrollToSilence = (index) => {
+    const silenceRef = silenceRefs.current[index];
+    if (silenceRef) {
+      silenceRef.measureLayout(transcriptScrollViewRef.current, (x, y) => {
+        transcriptScrollViewRef.current.scrollTo({ x: 0, y, animated: true });
+      });
     }
   };
 
@@ -268,104 +265,114 @@ export default function AnalysisScreen({ route, navigation }) {
         colors={['#FFDEE9', '#B5FFFC']}
         style={styles.container}
       >
-
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4caf50" />
-          <Animated.Text
-            style={[
-              styles.loadingMessage,
-              { opacity: loadingMessage },
-            ]}
-          >
-            분석 중입니다. 잠시만 기다려주세요...
-          </Animated.Text>
-        </View>
-      ) : (
-        <Animated.View style={{ opacity: contentOpacity }}>
-          <TouchableOpacity
-            style={styles.transcriptContainer}
-            onPress={() => setShowTranscript(!showTranscript)}
-          >
-            <Text style={styles.sectionTitle}>텍스트</Text>
-            {showTranscript && (
-              <View style={styles.transcriptContent}>
-                <Text style={styles.transcriptText}>
-                  {highlightKeywordsInTranscript(transcript, topKeywords, silenceDurations)}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          <Card style={styles.card}>
-            <TouchableOpacity
-              style={styles.sectionContainer}
-              onPress={() => setShowDetails(!showDetails)}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4caf50" />
+            <Animated.Text
+              style={[
+                styles.loadingMessage,
+                { opacity: loadingMessage },
+              ]}
             >
-              <Card.Title title="혐오 표현" />
-              {showDetails && (
-                <Card.Content style={styles.hateSpeechContainer}>
-                  <View style={styles.hateSpeechTokensContainer}>
-                    {renderHateSpeechResults()}
-                  </View>
-                  <Text style={styles.hateSpeechFeedback}>
+              분석 중입니다. 잠시만 기다려주세요...
+            </Animated.Text>
+          </View>
+        ) : (
+          <Animated.View style={{ opacity: contentOpacity }}>
+            <TouchableOpacity
+              style={styles.energyContainer}
+              onPress={() => navigation.navigate('CustomTabs', { fileId })}
+            >
+              <View style={styles.iconAndText}>
+                <Ionicons name="flash" size={24} color="#FFC107" />
+                <Text style={styles.energyText}>에너지</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.transcriptContainer}
+              onPress={() => setShowTranscript(!showTranscript)}
+            >
+              <Text style={styles.sectionTitle}>텍스트</Text>
+              {showTranscript && (
+                <ScrollView
+                  style={styles.transcriptContent}
+                  ref={transcriptScrollViewRef}
+                >
+                  <Text style={styles.transcriptText}>
+                    {highlightKeywordsInTranscript(transcript, topKeywords, silenceDurations)}
                   </Text>
-                </Card.Content>
+                </ScrollView>
               )}
             </TouchableOpacity>
-          </Card>
 
-          <Card style={styles.card}>
-            <Card.Title title="말의 속도" />
-            <Card.Content>
-              <Text style={styles.sectionContent}>
-                {wordRate !== null
-                  ? `평균 말하기 속도: ${wordRate.toFixed(2)} 단어/초`
-                  : "말의 속도 정보를 불러올 수 없습니다."}
-              </Text>
-              <Text style={styles.speedScore}>{speedScore}</Text>
-              <Text style={styles.speedFeedback}>{getSpeedFeedback(speedScore)}</Text>
-            </Card.Content>
-          </Card>
+            <Card style={styles.card}>
+              <Card.Title title="말의 속도" />
+              <Card.Content>
+                <Text style={styles.sectionContent}>
+                  {wordRate !== null
+                    ? `평균 말하기 속도: ${wordRate.toFixed(2)} 단어/초`
+                    : "말의 속도 정보를 불러올 수 없습니다."}
+                </Text>
+                <Text style={styles.speedScore}>{speedScore}</Text>
+                <Text style={styles.speedFeedback}>{getSpeedFeedback(speedScore)}</Text>
+              </Card.Content>
+            </Card>
 
-          <Card style={styles.card}>
-            <Card.Title title="긴 침묵 구간" />
-            <Card.Content>
-              {renderSilenceDurations()}
-            </Card.Content>
-          </Card>
+            <Card style={styles.card}>
+              <Card.Title title="긴 침묵 구간" />
+              <Card.Content>
+                {renderSilenceDurations()}
+              </Card.Content>
+            </Card>
 
-          <Card style={styles.card}>
-            <Card.Title title="주요 키워드" />
-            <Card.Content>
-              {topKeywords.length > 0 ? (
-                topKeywords.map((keyword, index) => (
-                  <Text key={index} style={styles.keywordItem}>
-                    {highlightText(keyword, topKeywords, styles.keywordHighlight)}
-                  </Text>
-                ))
-              ) : (
-                <Text style={styles.noResults}>주요 키워드가 없습니다.</Text>
-              )}
-            </Card.Content>
-          </Card>
+            <Card style={styles.card}>
+              <Card.Title title="주요 키워드" />
+              <Card.Content>
+                {Array.isArray(topKeywords) && topKeywords.length > 0 ? (
+                  topKeywords.map((keyword, index) => (
+                    <Text key={index} style={styles.keywordItem}>
+                      <Text style={styles.keywordHighlight}>{keyword}</Text>
+                    </Text>
+                  ))
+                ) : (
+                  <Text style={styles.noResults}>주요 키워드가 없습니다.</Text>
+                )}
+              </Card.Content>
+            </Card>
 
-          <Card style={styles.card}>
-            <Card.Title title="불필요한 단어 빈도" />
-            <Card.Content>
-              {renderWordCounts(regexWordCounts, styles.unnecessaryWordHighlight)}
-            </Card.Content>
-          </Card>
+            <Card style={styles.card}>
+              <Card.Title title="불필요한 단어 빈도" />
+              <Card.Content>
+                {renderWordCounts(regexWordCounts, styles.unnecessaryWordHighlight)}
+              </Card.Content>
+            </Card>
 
-          <Card style={styles.card}>
-            <Card.Title title="반복된 빈도" />
-            <Card.Content>
-              {renderWordCounts(normalWordCounts, styles.repeatedWordHighlight)}
-            </Card.Content>
-          </Card>
-        </Animated.View>
-      )}
+            <Card style={styles.card}>
+              <Card.Title title="반복된 단어 빈도" />
+              <Card.Content>
+                {renderWordCounts(normalWordCounts, styles.repeatedWordHighlight)}
+              </Card.Content>
+            </Card>
+
+            <Card style={styles.card}>
+              <TouchableOpacity
+                style={styles.sectionContainer}
+                onPress={() => setShowDetails(!showDetails)}
+              >
+                <Card.Title title="혐오 표현" />
+                {showDetails && (
+                  <Card.Content style={styles.hateSpeechContainer}>
+                    <View style={styles.hateSpeechTokensContainer}>
+                      {renderHateSpeechResults()}
+                    </View>
+                    <Text style={styles.hateSpeechFeedback}></Text>
+                  </Card.Content>
+                )}
+              </TouchableOpacity>
+            </Card>
+          </Animated.View>
+        )}
       </LinearGradient>
     </ScrollView>
   );
@@ -509,5 +516,15 @@ const styles = StyleSheet.create({
   },
   boldText: {
     fontWeight: "bold",
+  },
+  energyContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    width: '100%',
+  },
+  iconAndText: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });

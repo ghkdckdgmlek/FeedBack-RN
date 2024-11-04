@@ -45,7 +45,7 @@ export default function AnalysisScreen({ route, navigation }) {
     console.log("Transcript를 가져오는 토큰:", token);
     try {
       const response = await axios.get(
-        `http://192.168.219.148:5002/recordings/${fileId}/transcript`,
+        `${Your_IP}/recordings/${fileId}/transcript`,
         {
           headers: { Authorization: `Bearer ${token}` },
           timeout: 0  

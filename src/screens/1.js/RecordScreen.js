@@ -161,7 +161,7 @@ export default function RecordScreen() {
 
     try {
       const response = await axios.post(
-        "http://${Your_IP}/recordings",
+        "http://${Your_IP}:5001/recordings",
         formData,
         {
           headers: {
